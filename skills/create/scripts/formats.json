@@ -1,0 +1,103 @@
+{
+  "_note": "Shipcast platform formats. Researched Nov 2026 from the platforms' published specs and common practice. safe = px from each edge the platform covers with its own buttons, captions or crops; keep text inside.",
+  "formats": [
+    {
+      "id": "instagram-feed",
+      "platform": "Instagram",
+      "label": "Feed post",
+      "kind": "image",
+      "width": 1080, "height": 1350, "ratio": "4:5",
+      "safe": { "top": 70, "right": 60, "bottom": 70, "left": 60 },
+      "why": "4:5 portrait takes the most space in the feed. The profile grid shows a centred 3:4 crop, so key content stays away from the top and bottom edges.",
+      "vibe": "Polished and visual. One bold idea per post, a short headline, the real product front and centre.",
+      "caption": "First line is the hook (it shows before 'more'). Then 2–4 short lines of value, one clear call to action, then hashtags on their own line.",
+      "maxHashtags": 5
+    },
+    {
+      "id": "instagram-carousel",
+      "platform": "Instagram",
+      "label": "Carousel",
+      "kind": "carousel",
+      "width": 1080, "height": 1350, "ratio": "4:5",
+      "slides": { "min": 3, "max": 7 },
+      "safe": { "top": 70, "right": 60, "bottom": 90, "left": 60 },
+      "why": "Carousels get swiped and saved. Slide 1 is the hook, the middle slides teach or show, the last slide sums up with the product name and a call to action. Instagram's dots sit at the bottom.",
+      "vibe": "Clear and useful: a mini guide or a feature walkthrough. Each slide one point, consistent layout across slides.",
+      "caption": "Hook line, one line on what the carousel shows, a call to action ('Save this', 'Swipe'), then hashtags.",
+      "maxHashtags": 5
+    },
+    {
+      "id": "instagram-reel",
+      "platform": "Instagram",
+      "label": "Reel",
+      "kind": "video",
+      "width": 1080, "height": 1920, "ratio": "9:16", "duration": 15,
+      "safe": { "top": 250, "right": 140, "bottom": 420, "left": 60 },
+      "why": "Reels are full-screen vertical video. The top and the bottom fifth are covered by Instagram's buttons and caption; the right edge holds the like/comment column.",
+      "vibe": "Energetic and quick. Readable hook within the first second, one idea per beat, big on-screen text — it plays muted.",
+      "caption": "One punchy line, one line of value, a call to action, then hashtags.",
+      "maxHashtags": 5
+    },
+    {
+      "id": "tiktok-video",
+      "platform": "TikTok",
+      "label": "Video",
+      "kind": "video",
+      "width": 1080, "height": 1920, "ratio": "9:16", "duration": 15,
+      "safe": { "top": 160, "right": 160, "bottom": 480, "left": 60 },
+      "why": "TikTok is vertical video first. Its buttons run down the right edge and its caption covers the bottom quarter.",
+      "vibe": "Native and playful. 'Watch this' energy, a hook in the first second, show the product doing something, captions on screen.",
+      "caption": "Short and casual, like a person talking. One line plus 3–5 hashtags.",
+      "maxHashtags": 5
+    },
+    {
+      "id": "tiktok-photo",
+      "platform": "TikTok",
+      "label": "Photo carousel",
+      "kind": "carousel",
+      "width": 1080, "height": 1920, "ratio": "9:16",
+      "slides": { "min": 3, "max": 7 },
+      "safe": { "top": 160, "right": 160, "bottom": 480, "left": 60 },
+      "why": "TikTok photo mode is a swipeable vertical slideshow with the same button and caption areas as video.",
+      "vibe": "Bold and simple. One big line per slide, the product in every frame.",
+      "caption": "Short and casual, 3–5 hashtags.",
+      "maxHashtags": 5
+    },
+    {
+      "id": "linkedin-image",
+      "platform": "LinkedIn",
+      "label": "Portrait image",
+      "kind": "image",
+      "width": 1080, "height": 1350, "ratio": "4:5",
+      "safe": { "top": 60, "right": 60, "bottom": 60, "left": 60 },
+      "why": "Portrait images take the most room in the LinkedIn feed on phones, where most people read it.",
+      "vibe": "Professional and specific: the problem, what was built, the result. Confident, no hype, no emoji walls.",
+      "caption": "A strong first line (shown before 'see more'), 3–6 short lines on the problem and what the product does, a question or call to action, then up to 3 hashtags.",
+      "maxHashtags": 3
+    },
+    {
+      "id": "linkedin-square",
+      "platform": "LinkedIn",
+      "label": "Square image",
+      "kind": "image",
+      "width": 1080, "height": 1080, "ratio": "1:1",
+      "safe": { "top": 60, "right": 60, "bottom": 60, "left": 60 },
+      "why": "Square looks the same on desktop and phone — good for announcements and screenshots.",
+      "vibe": "Professional and specific. Confident, no hype.",
+      "caption": "A strong first line, 3–6 short lines, a question or call to action, up to 3 hashtags.",
+      "maxHashtags": 3
+    },
+    {
+      "id": "linkedin-video",
+      "platform": "LinkedIn",
+      "label": "Video",
+      "kind": "video",
+      "width": 1080, "height": 1350, "ratio": "4:5", "duration": 20,
+      "safe": { "top": 60, "right": 60, "bottom": 100, "left": 60 },
+      "why": "LinkedIn videos autoplay muted in a portrait-friendly feed, so the story must work through on-screen text alone.",
+      "vibe": "Calm and confident. Show the product step by step with clear captions, end on the product name.",
+      "caption": "A strong first line, 2–4 short lines, a call to action, up to 3 hashtags.",
+      "maxHashtags": 3
+    }
+  ]
+}
