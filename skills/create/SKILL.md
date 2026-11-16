@@ -2,7 +2,7 @@
 name: create
 description: Create social media posts — images, carousels and videos — for Instagram, TikTok or LinkedIn about a software product, grounded in the product's own code, docs or notes. Use when the user asks for social posts, launch posts, marketing visuals, reels, carousels, promo videos or "content" about their app, product, feature or release.
 argument-hint: "[platform] [format] [count] [focus or notes]"
-allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/shipcast.mjs *) Bash(mkdir *) Bash(cp *) Bash(git check-ignore *) Read Write Edit Glob Grep
+allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/shipcast.mjs *) Bash(mkdir *) Bash(cp *) Bash(git check-ignore *) Read Write Edit Glob Grep AskUserQuestion
 ---
 
 # Shipcast — turn what the team ships into posts that sell it
@@ -53,18 +53,39 @@ and `videoReady` is false, say ffmpeg is missing and offer images instead.
 
 ### 2. Get the request straight — ask only what's missing
 
-Work out four things from `$ARGUMENTS` and the conversation. **Ask once, in one message, only for what
-you can't infer** (use AskUserQuestion when available):
+Work out four things from `$ARGUMENTS` and the conversation:
 
 | Need | Default when not given |
 |---|---|
-| **Source** — where the product lives: this folder, another folder, a doc/notes file, or a description in chat | the current working directory |
+| **Source** — where the product lives: a folder, a doc/notes file, or a description in chat | see **Choosing the source** below |
 | **Format** — platform + format id from `formats` | `instagram-feed` |
 | **Count** — how many posts | 3 (1 for video) |
 | **Focus** — feature, audience, language, campaign, call to action | the product's strongest story |
 
 Run `formats` and map the user's words to a format id ("reel" → `instagram-reel`, "TikTok" →
 `tiktok-video`, "LinkedIn post" → `linkedin-image`, "carousel" → `instagram-carousel`).
+
+**Choosing the source:**
+
+1. The user named a folder, a file, a repo or a product → use it. If they named a product but not a
+   path, run `find` and match the name.
+2. The current directory is a product (it has `.git`, a manifest like `package.json`, `pubspec.yaml`,
+   `build.gradle`, `Package.swift`, or a `PRODUCT.md`) → use it, and say so in the brief summary.
+3. Otherwise → run `find`. It lists product folders on this computer (code repos and doc folders),
+   most recently worked on first, with each one's name, stack, one-line description and last activity.
+   It reads only folder names, manifests and README first lines — nothing leaves the machine.
+   - **One match** → use it and say so.
+   - **Several** → **ask with the AskUserQuestion tool** — never as a typed list the user must answer
+     in prose. Offer the **4 most recent** as options: label = product name, description =
+     `<short path> · <stack> · <last active>` plus the one-liner when there is one. The tool adds
+     "Other" on its own — tell the user in the question that they can type a path there, or describe
+     an idea that has no folder yet. If more than 4 were found, list the next few names (name + short
+     path) in a line of text **before** the question so they can type one.
+   - **None** → ask for a path, a notes file, or a description of the product.
+
+**Ask once.** Put every missing need into **one** AskUserQuestion call (up to 4 questions: source,
+format, count, focus) — only the ones you couldn't infer. Options for format: the 2–4 formats that fit
+their words, recommended first. Never ask for something the request already answers.
 
 ### 3. Understand the product
 

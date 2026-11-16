@@ -32,7 +32,10 @@ Open Claude Code in your product's folder and ask:
 /shipcast:create instagram-feed 3 focus on onboarding
 ```
 
-or just say it: *"make 3 Instagram posts about this app"*, *"a 15-second TikTok for our launch"*,
+Not inside the product's folder? Shipcast finds the products on your computer — code repos and doc
+folders, most recently worked on first — and lets you pick one from a list.
+
+Or just say it: *"make 3 Instagram posts about this app"*, *"a 15-second TikTok for our launch"*,
 *"a LinkedIn carousel explaining how the sync works"*. Shipcast starts on its own.
 
 It works with:
@@ -79,6 +82,7 @@ hashtag limit.
 
 ```
 node skills/create/scripts/shipcast.mjs doctor
+node skills/create/scripts/shipcast.mjs find
 node skills/create/scripts/shipcast.mjs inventory ~/code/my-app
 node skills/create/scripts/shipcast.mjs render post.html --format instagram-feed --out post.png
 node skills/create/scripts/shipcast.mjs video reel.html --format instagram-reel --out reel.mp4

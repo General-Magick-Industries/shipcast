@@ -3,6 +3,7 @@
 //
 //   doctor                                   check Node, browser and ffmpeg
 //   formats [id]                             platform formats (sizes, safe areas, caption rules)
+//   find [dir...] [--depth 4] [--limit 25]   list product folders on this computer, most recently worked on first
 //   inventory <dir>                          map a product folder: stack, docs, design tokens, copy, pictures
 //   check  <html> --format <id>              layout problems a viewer would see (JSON)
 //   render <html> --format <id> --out <png> [--at <seconds>]   (or --size WxH for any canvas)
@@ -12,7 +13,7 @@
 
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, openSync, readSync, closeSync } from 'node:fs'
-import { tmpdir, platform } from 'node:os'
+import { tmpdir, platform, homedir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -428,6 +429,79 @@ function inventory(root) {
 const byDepth = (a, b) => a.path.split('/').length - b.path.split('/').length || a.path.localeCompare(b.path)
 const kb = (n) => (n >= 1024 * 1024 ? `${(n / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`)
 
+// ── find: product folders on this computer ──────────────────────────────────
+// Only folder names, marker files and the first lines of a manifest or README are read. Nothing leaves the machine.
+const FIND_ROOTS = ['Documents', 'Developer', 'Projects', 'projects', 'Code', 'code', 'dev', 'Dev', 'src', 'repos', 'Repos', 'workspace', 'Workspace', 'GitHub', 'github', 'git', 'Sites', 'Desktop', 'IdeaProjects', 'AndroidStudioProjects', 'StudioProjects', 'source/repos', 'Work', 'work']
+const FIND_SKIP = new Set([...SKIP_DIR, 'Library', 'Applications', 'Pictures', 'Music', 'Movies', 'Downloads', 'Public', 'node_modules', 'Pods', 'Carthage', 'site-packages', 'android', 'ios', 'macos', 'windows', 'linux', 'web'])
+const MARKERS = [
+  [/^pubspec\.yaml$/, 'Flutter/Dart'], [/^Package\.swift$|\.xcodeproj$|\.xcworkspace$/, 'Swift/iOS'], [/^(settings|build)\.gradle(\.kts)?$/, 'Kotlin/Android'],
+  [/^package\.json$/, 'JavaScript'], [/^Cargo\.toml$/, 'Rust'], [/^go\.mod$/, 'Go'], [/^(pyproject\.toml|requirements\.txt|setup\.py)$/, 'Python'],
+  [/^composer\.json$/, 'PHP'], [/^Gemfile$/, 'Ruby'], [/\.(csproj|sln)$/, '.NET'], [/^(PRODUCT|BRIEF|PITCH|VISION)\.md$/i, 'Docs'],
+]
+function firstLine(text) {
+  for (const raw of text.split('\n')) {
+    const l = raw.replace(/<[^>]+>/g, '').replace(/[*_`>#]/g, '').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').trim()
+    if (l.length > 25 && !/^(badge|build|license|npm|version|table of contents)/i.test(l) && !/^[-=|:\s]+$/.test(l)) return l.length > 140 ? `${l.slice(0, 137)}…` : l
+  }
+  return ''
+}
+function describeProject(dir, names) {
+  const read = (n) => { try { return readFileSync(join(dir, n), 'utf8').slice(0, 20000) } catch { return '' } }
+  const stack = [...new Set(MARKERS.filter(([re]) => names.some((n) => re.test(n))).map(([, v]) => v))]
+  let name = basename(dir), description = ''
+  if (names.includes('package.json')) {
+    try {
+      const j = JSON.parse(read('package.json'))
+      const d = { ...j.dependencies, ...j.devDependencies }
+      const fw = [['expo', 'Expo/React Native'], ['react-native', 'React Native'], ['next', 'Next.js'], ['nuxt', 'Nuxt'], ['vue', 'Vue'], ['svelte', 'Svelte'], ['astro', 'Astro'], ['electron', 'Electron'], ['react', 'React']].find(([k]) => d?.[k])
+      if (fw) stack.splice(stack.indexOf('JavaScript'), 1, fw[1])
+      if (j.workspaces) stack.push('monorepo')
+      if (j.name && !/^(root|monorepo|app|workspace)$/i.test(j.name)) name = j.name
+      description = j.description || ''
+    } catch {}
+  }
+  if (names.includes('pubspec.yaml')) {
+    const y = read('pubspec.yaml')
+    name = y.match(/^name:\s*(.+)$/m)?.[1].trim() || name
+    description = y.match(/^description:\s*["']?(.+?)["']?\s*$/m)?.[1] || description
+  }
+  if (!description) {
+    const readme = names.find((n) => /^(readme|product|brief|pitch)\.(md|mdx|txt|rst)$/i.test(n))
+    if (readme) description = firstLine(read(readme))
+  }
+  // Last worked on: the git ref log or index when there is one, else the newest top-level entry.
+  let last = 0
+  for (const g of ['.git/logs/HEAD', '.git/index', '.git/FETCH_HEAD']) try { last = Math.max(last, statSync(join(dir, g)).mtimeMs) } catch {}
+  if (!last) for (const n of names) try { last = Math.max(last, statSync(join(dir, n)).mtimeMs) } catch {}
+  let remote = ''
+  try { remote = readFileSync(join(dir, '.git/config'), 'utf8').match(/url\s*=\s*(\S+)/)?.[1].replace(/^git@([^:]+):/, 'https://$1/').replace(/\/\/[^@/]+@/, '//').replace(/\.git$/, '') || '' } catch {}
+  return { name, path: dir, stack: stack.length ? stack : ['git'], description, lastActive: last ? new Date(last).toISOString().slice(0, 10) : null, remote, _t: last }
+}
+function findProjects(roots, maxDepth, limit) {
+  const home = homedir()
+  const starts = roots.length ? roots.map((r) => resolve(r)) : [process.cwd(), ...FIND_ROOTS.map((r) => join(home, r))]
+  const seen = new Set(), found = []
+  let visited = 0
+  const queue = starts.filter((r) => existsSync(r)).map((r) => [r, 0])
+  while (queue.length && visited < 30000) {
+    const [dir, depth] = queue.shift()
+    if (seen.has(dir)) continue
+    seen.add(dir); visited++
+    let entries
+    try { entries = readdirSync(dir, { withFileTypes: true }) } catch { continue }
+    const names = entries.map((e) => e.name)
+    const isProject = names.includes('.git') || MARKERS.some(([re]) => names.some((n) => re.test(n)))
+    if (isProject && dir !== home) { found.push(describeProject(dir, names)); continue } // a product's own subfolders belong to it
+    if (depth >= maxDepth) continue
+    for (const e of entries)
+      if (e.isDirectory() && !e.name.startsWith('.') && !FIND_SKIP.has(e.name) && !/\.(app|photoslibrary|bundle|framework)$/.test(e.name)) queue.push([join(dir, e.name), depth + 1])
+  }
+  // A folder inside another found product (e.g. a cwd inside a repo) collapses into the outer one.
+  const uniq = found.filter((p) => !found.some((q) => q !== p && p.path.startsWith(q.path + '/')))
+  uniq.sort((a, b) => b._t - a._t)
+  return { searched: starts.filter((r) => existsSync(r)), count: uniq.length, projects: uniq.slice(0, limit).map(({ _t, ...p }) => p) }
+}
+
 // ── commands ────────────────────────────────────────────────────────────────
 async function main() {
   if (cmd === 'doctor') {
@@ -443,6 +517,10 @@ async function main() {
   if (cmd === 'formats') {
     const list = pos[0] ? [format(pos[0])] : FORMATS
     console.log(JSON.stringify(list, null, 2))
+    return
+  }
+  if (cmd === 'find') {
+    console.log(JSON.stringify(findProjects(pos, Number(opt.depth ?? 4), Number(opt.limit ?? 25)), null, 2))
     return
   }
   if (cmd === 'inventory') {
@@ -543,7 +621,7 @@ figure{margin:0}img{width:${cell}px;display:block;border-radius:6px}figcaption{m
     console.log(resolve(opt.out))
     return
   }
-  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 12).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'))
+  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 13).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'))
   if (cmd) process.exitCode = 1
 }
 
