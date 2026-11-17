@@ -6,10 +6,10 @@
 //   find [dir...] [--depth 4] [--limit 25]   list product folders on this computer, most recently worked on first
 //   inventory <dir>                          map a product folder: stack, docs, design tokens, copy, pictures
 //   check  <html> --format <id>              layout problems a viewer would see (JSON)
-//   render <html> --format <id> --out <png> [--at <seconds>]   (or --size WxH for any canvas)
+//   render <html> --format <id> --out <png> [--at <seconds>] [--preview <jpg>]   (or --size WxH for any canvas)
 //   frames <html> --format <id> --out-dir <dir> [--at 1,5,9.5]
 //   video  <html> --format <id> --out <mp4> [--duration s] [--fps 30] [--audio file]
-//   sheet  <png...> --out <png> [--cols 3]   one contact sheet to review several renders at once
+//   sheet  <png...> --out <png> [--cols 3] [--preview <jpg>]   one contact sheet to review several renders at once
 
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, openSync, readSync, closeSync } from 'node:fs'
@@ -182,6 +182,10 @@ class Page {
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
       return true })()`)
   }
+  async jpeg(w, h, scale = 0.5) {
+    const r = await this.send('Page.captureScreenshot', { format: 'jpeg', quality: 82, fromSurface: true, captureBeyondViewport: false, clip: { x: 0, y: 0, width: w, height: h, scale } })
+    return Buffer.from(r.data, 'base64')
+  }
   async png(w, h) {
     const r = await this.send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport: false, clip: { x: 0, y: 0, width: w, height: h, scale: 1 } })
     return Buffer.from(r.data, 'base64')
@@ -189,6 +193,9 @@ class Page {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+// --preview <file.jpg>: a small JPEG next to the full-size PNG, for showing a render inside a chat.
+const previewScale = (w, h) => Math.min(1, 1000 / Math.max(w, h))
+function writePreview(file, buf) { mkdirSync(dirname(resolve(file)), { recursive: true }); writeFileSync(file, buf) }
 
 async function withPage(file, f, fn) {
   if (!existsSync(file)) die(`no such file: ${file}`)
@@ -540,6 +547,7 @@ async function main() {
     const png = await withPage(pos[0], f, async (p) => {
       if (opt.at !== undefined) await p.freeze(Number(opt.at))
       else await p.settle()
+      if (opt.preview) writePreview(opt.preview, await p.jpeg(f.width, f.height, previewScale(f.width, f.height)))
       return p.png(f.width, f.height)
     })
     mkdirSync(dirname(resolve(opt.out)), { recursive: true })
@@ -614,7 +622,10 @@ figure{margin:0}img{width:${cell}px;display:block;border-radius:6px}figcaption{m
     const tmp = join(mkdtempSync(join(tmpdir(), 'shipcast-sheet-')), 'sheet.html')
     writeFileSync(tmp, html)
     const f = { id: 'sheet', width, height, safe: { top: 0, right: 0, bottom: 0, left: 0 } }
-    const png = await withPage(tmp, f, async (p) => p.png(width, height))
+    const png = await withPage(tmp, f, async (p) => {
+      if (opt.preview) writePreview(opt.preview, await p.jpeg(width, height, previewScale(width, height)))
+      return p.png(width, height)
+    })
     mkdirSync(dirname(resolve(opt.out)), { recursive: true })
     writeFileSync(opt.out, png)
     rmSync(dirname(tmp), { recursive: true, force: true })

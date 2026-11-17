@@ -24,6 +24,16 @@ In Claude Code:
 You also need **Node 22+**, **Google Chrome** (or Chromium/Edge), and **ffmpeg** for video
 (`brew install ffmpeg` · `winget install ffmpeg` · `sudo apt install ffmpeg`).
 
+## Claude Desktop
+
+Not using Claude Code? Install the **Shipcast extension for Claude Desktop**: download
+`shipcast.mcpb` and double-click it (or Settings → Extensions → Install extension). It has the same
+features — it finds your products, reads them, and renders and checks every post on your computer — and
+adds a **Make social posts** prompt to Claude Desktop. You need Google Chrome, Node.js 22+, and ffmpeg for
+video. Posts are saved in `Documents/Shipcast` (changeable in the extension's settings).
+
+Build it yourself with `node mcp/build.mjs` → `mcp/dist/shipcast.mcpb`.
+
 ## Use
 
 Open Claude Code in your product's folder and ask:
@@ -92,6 +102,7 @@ node skills/create/scripts/shipcast.mjs video reel.html --format instagram-reel 
 
 ```
 .claude-plugin/        plugin.json + marketplace.json (this repo is its own marketplace)
+mcp/                   Claude Desktop extension: MCP server, its workflow, manifest, build script
 skills/create/
   SKILL.md             the workflow
   references/          reading, brief, platforms, design, motion, review, real-app

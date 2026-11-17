@@ -1,0 +1,159 @@
+{
+  "manifest_version": "0.4",
+  "name": "shipcast",
+  "display_name": "Shipcast",
+  "version": "1.2.0",
+  "description": "Turn your product's code, docs or notes into on-brand Instagram, TikTok and LinkedIn posts — rendered and checked before you see them.",
+  "long_description": "Shipcast reads a software product — its code, docs or notes — and makes social posts a team would actually publish: images, carousels and videos for Instagram, TikTok and LinkedIn. It finds the products on your computer, works out the brand from the source, designs every post from the real product, renders it locally in Chrome, checks the layout, looks at it, and fixes it before you see it. Everything runs on your computer; your files never leave it.",
+  "author": {
+    "name": "Magick Studios",
+    "url": "https://shipcast.magickstudios.ai"
+  },
+  "homepage": "https://shipcast.magickstudios.ai",
+  "documentation": "https://shipcast.magickstudios.ai/guides/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/General-Magick-Industries/shipcast"
+  },
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/index.mjs"
+      ],
+      "env": {
+        "SHIPCAST_OUTPUT": "${user_config.output_folder}",
+        "SHIPCAST_CHROME_PATH": "${user_config.chrome_path}",
+        "SHIPCAST_FFMPEG_PATH": "${user_config.ffmpeg_path}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "guide",
+      "description": "The Shipcast workflow and reference guides"
+    },
+    {
+      "name": "doctor",
+      "description": "Check Node, Chrome and ffmpeg"
+    },
+    {
+      "name": "formats",
+      "description": "Platform sizes, safe areas and caption rules"
+    },
+    {
+      "name": "find_products",
+      "description": "List product folders on this computer"
+    },
+    {
+      "name": "inventory",
+      "description": "Map a product folder: stack, brand, copy, screens"
+    },
+    {
+      "name": "list_files",
+      "description": "List files in a folder"
+    },
+    {
+      "name": "read_file",
+      "description": "Read a product file (secrets refused)"
+    },
+    {
+      "name": "search",
+      "description": "Search a product's files"
+    },
+    {
+      "name": "view_image",
+      "description": "Look at a product picture"
+    },
+    {
+      "name": "start_project",
+      "description": "Create the output folder"
+    },
+    {
+      "name": "write_file",
+      "description": "Write a file in the output folder"
+    },
+    {
+      "name": "copy_asset",
+      "description": "Copy a picture into the project"
+    },
+    {
+      "name": "check",
+      "description": "Find layout problems in a post"
+    },
+    {
+      "name": "render",
+      "description": "Render a post to PNG and preview it"
+    },
+    {
+      "name": "frames",
+      "description": "Review moments of a video post"
+    },
+    {
+      "name": "video",
+      "description": "Export a video post to MP4"
+    },
+    {
+      "name": "sheet",
+      "description": "Contact sheet of several posts"
+    },
+    {
+      "name": "open_folder",
+      "description": "Open the results folder"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "create",
+      "description": "Make Instagram, TikTok or LinkedIn posts about a product",
+      "arguments": [
+        "request"
+      ],
+      "text": "Use Shipcast to make social posts: ${arguments.request}. Start by calling the guide tool with topic \"workflow\" and follow it step by step."
+    }
+  ],
+  "keywords": [
+    "marketing",
+    "social media",
+    "instagram",
+    "tiktok",
+    "linkedin",
+    "content",
+    "design",
+    "video"
+  ],
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=22.0.0"
+    }
+  },
+  "user_config": {
+    "output_folder": {
+      "type": "directory",
+      "title": "Output folder",
+      "description": "Where Shipcast saves posts, videos, captions and briefs.",
+      "default": "${DOCUMENTS}/Shipcast",
+      "required": false
+    },
+    "chrome_path": {
+      "type": "file",
+      "title": "Chrome (optional)",
+      "description": "Only if Shipcast can't find Google Chrome, Chromium or Edge on its own.",
+      "required": false
+    },
+    "ffmpeg_path": {
+      "type": "file",
+      "title": "ffmpeg (optional)",
+      "description": "Only if Shipcast can't find ffmpeg for video on its own.",
+      "required": false
+    }
+  }
+}
