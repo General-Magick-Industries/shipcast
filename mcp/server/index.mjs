@@ -27,9 +27,10 @@ delete ENV.SHIPCAST_CHROME; delete ENV.SHIPCAST_FFMPEG
 if (setting('SHIPCAST_CHROME_PATH')) ENV.SHIPCAST_CHROME = setting('SHIPCAST_CHROME_PATH')
 if (setting('SHIPCAST_FFMPEG_PATH')) ENV.SHIPCAST_FFMPEG = setting('SHIPCAST_FFMPEG_PATH')
 
-// The toolkit needs Node 22+ (built-in WebSocket). Use this runtime if it qualifies, else a newer system node.
+// The toolkit needs Node 22+ (built-in WebSocket). Use this runtime if it qualifies, else a system node.
+// Inside Claude Desktop's built-in runtime, process.execPath is the Claude app itself, which may not be launched.
 function nodeBinary() {
-  if (Number(process.versions.node.split('.')[0]) >= 22) return process.execPath
+  if (!process.versions.electron && Number(process.versions.node.split('.')[0]) >= 22) return process.execPath
   const r = spawnSync(platform() === 'win32' ? 'where' : 'which', ['node'], { env: ENV, encoding: 'utf8' })
   for (const p of (r.stdout || '').split(/\r?\n/).filter(Boolean)) {
     const v = spawnSync(p, ['-p', 'process.versions.node'], { encoding: 'utf8' }).stdout?.trim()
@@ -40,11 +41,12 @@ function nodeBinary() {
 const NODE = nodeBinary()
 
 function toolkit(args, timeoutMs = 10 * 60_000) {
-  if (!NODE) return Promise.resolve({ ok: false, out: '', err: 'Shipcast needs Node.js 22 or newer. Install it from https://nodejs.org and restart Claude.' })
+  if (!NODE) return Promise.resolve({ ok: false, out: '', err: 'Shipcast needs Node.js 22 or newer installed on this computer (Claude Desktop’s built-in runtime can’t run the renderer). Install it from https://nodejs.org, then restart Claude.' })
   return new Promise((done) => {
     const p = spawn(NODE, [TOOLKIT, ...args], { env: ENV })
     let out = '', err = ''
     const t = setTimeout(() => p.kill(), timeoutMs)
+    p.on('error', (e) => { clearTimeout(t); done({ ok: false, out: '', err: `could not start the Shipcast toolkit: ${e.message}` }) })
     p.stdout.on('data', (d) => (out += d))
     p.stderr.on('data', (d) => (err += d))
     p.on('close', (code) => { clearTimeout(t); done({ ok: code === 0 || code === 2, code, out: out.trim(), err: err.trim() }) })
