@@ -8,7 +8,7 @@ product's own code, docs or notes, designs every post from the real product (rea
 colours, the product's own words), renders it, checks it, **looks at it**, and fixes it before you ever
 see it.
 
-By [Magick Studios](https://shipcast.magickstudios.ai) · [Website & guides](https://shipcast.magickstudios.ai) · MIT licensed
+By [Magick Studios](https://shipcast.magickstudios.ai) · [Website & guides](https://shipcast.magickstudios.ai)
 
 ![Instagram posts made for Magick Learn](docs/examples/strip.jpg)
 
@@ -100,4 +100,4 @@ skills/create/
 
 ## License
 
-[MIT](LICENSE) © Magick Studios (General Magick Industries)
+© Magick Studios (General Magick Industries). All rights reserved.
