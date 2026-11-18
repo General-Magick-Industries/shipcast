@@ -1,8 +1,8 @@
 {
   "name": "shipcast",
   "displayName": "Shipcast",
-  "version": "1.3.2",
-  "description": "Turn a software product into on-brand social posts. Reads your code, docs or notes, then designs, renders and checks Instagram, TikTok and LinkedIn images, carousels and videos.",
+  "version": "1.3.3",
+  "description": "Instagram, TikTok and LinkedIn images, carousels and videos made for your software product: reads its code, docs or notes, designs from its real screens and brand, then renders and checks every post.",
   "author": {
     "name": "Magick Studios",
     "url": "https://shipcast.magickstudios.ai"
