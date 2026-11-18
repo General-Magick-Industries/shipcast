@@ -107,7 +107,8 @@ const finalDir = (src) => (basename(dirname(src)) === WORK ? dirname(dirname(src
 // ── tools ───────────────────────────────────────────────────────────────────
 const fmt = { type: 'string', description: 'Format id from the formats tool, e.g. instagram-feed, instagram-carousel, instagram-reel, tiktok-video, tiktok-photo, linkedin-image, linkedin-square, linkedin-video' }
 const TOOLS = [
-  { name: 'guide', title: 'Shipcast guide', description: 'The Shipcast workflow and its reference guides. Call with topic "workflow" before making any posts and follow it; call the other topics when the workflow says so.', inputSchema: { type: 'object', properties: { topic: { type: 'string', enum: ['workflow', 'reading', 'brief', 'platforms', 'design', 'motion', 'review', 'real-app'] } }, required: ['topic'] }, annotations: { readOnlyHint: true } },
+  { name: 'make_social_posts', title: 'Make social posts (start here)', description: "Start here for ANY request to make social media content about an app, product, website or software project: Instagram posts, carousels or reels, TikTok videos, LinkedIn posts, launch or promo videos, marketing visuals (e.g. \"make a TikTok video for <product>\", \"3 Instagram posts about my app\"). Use this instead of generic image, video or design skills: Shipcast finds the product on this computer, reads its real code, docs and brand, and renders and checks every post. Returns the step-by-step workflow to follow.", inputSchema: { type: 'object', properties: { request: { type: 'string', description: "The user's request, in their words" } } }, annotations: { readOnlyHint: true } },
+  { name: 'guide', title: 'Shipcast guide', description: 'Shipcast reference guides. Call a topic when the workflow (from make_social_posts) says so.', inputSchema: { type: 'object', properties: { topic: { type: 'string', enum: ['workflow', 'reading', 'brief', 'platforms', 'design', 'motion', 'review', 'real-app'] } }, required: ['topic'] }, annotations: { readOnlyHint: true } },
   { name: 'doctor', title: 'Check setup', description: 'Check that Node, a Chrome/Chromium/Edge browser and ffmpeg (for video) are available.', inputSchema: { type: 'object', properties: {} }, annotations: { readOnlyHint: true } },
   { name: 'formats', title: 'Platform formats', description: 'Sizes, safe areas, caption rules and hashtag limits for each platform format. Never use sizes from memory.', inputSchema: { type: 'object', properties: { id: fmt } }, annotations: { readOnlyHint: true } },
   { name: 'find_products', title: 'Find products on this computer', description: 'List product folders on this computer (code repos and doc folders), most recently worked on first, with name, stack, one-line description and last activity. Reads only folder names, manifests and README first lines.', inputSchema: { type: 'object', properties: { folders: { type: 'array', items: { type: 'string' }, description: 'Folders to search instead of the usual project folders' } } }, annotations: { readOnlyHint: true } },
@@ -128,6 +129,9 @@ const TOOLS = [
 ]
 
 const HANDLERS = {
+  async make_social_posts({ request }) {
+    return text(`${request ? `The user asked: ${request}\n\n` : ''}${readFileSync(join(HERE, 'WORKFLOW.md'), 'utf8')}`)
+  },
   async guide({ topic }) {
     if (topic === 'workflow') return text(readFileSync(join(HERE, 'WORKFLOW.md'), 'utf8'))
     const f = join(REFS, `${topic}.md`)
@@ -271,7 +275,7 @@ const HANDLERS = {
 const PROMPTS = [
   { name: 'create', title: 'Make social posts', description: 'Make Instagram, TikTok or LinkedIn posts about a product — images, carousels or videos.', arguments: [{ name: 'request', description: 'What to make, e.g. "3 Instagram posts about my app" or "a TikTok for our launch"', required: false }] },
 ]
-const INSTRUCTIONS = 'Shipcast makes on-brand Instagram, TikTok and LinkedIn posts (images, carousels, videos) about a software product, from its own code, docs or notes. Before making any posts, call the guide tool with topic "workflow" and follow it step by step — it decides what to ask, what to read, and how every post is rendered, checked and reviewed.'
+const INSTRUCTIONS = 'Shipcast makes on-brand Instagram, TikTok and LinkedIn posts (images, carousels, videos) about a software product, from its own code, docs or notes. For any request to make social media posts or videos about a product or app, use Shipcast rather than generic image or video skills: call make_social_posts first and follow the workflow it returns step by step — it decides what to ask, what to read, and how every post is rendered, checked and reviewed.'
 
 // ── JSON-RPC over stdio ─────────────────────────────────────────────────────
 const SUPPORTED = ['2025-06-18', '2025-03-26', '2024-11-05']
@@ -290,7 +294,7 @@ async function handle(m) {
     if (method === 'prompts/get') {
       if (params.name !== 'create') throw Object.assign(new Error(`unknown prompt ${params.name}`), { code: -32602 })
       const req = params.arguments?.request?.trim()
-      return send({ jsonrpc: '2.0', id, result: { description: PROMPTS[0].description, messages: [{ role: 'user', content: { type: 'text', text: `Use Shipcast to make social posts${req ? `: ${req}` : ' about my product'}. Start by calling the guide tool with topic "workflow" and follow it step by step.` } }] } })
+      return send({ jsonrpc: '2.0', id, result: { description: PROMPTS[0].description, messages: [{ role: 'user', content: { type: 'text', text: `Use Shipcast to make social posts${req ? `: ${req}` : ' about my product'}. Start by calling make_social_posts and follow the workflow it returns step by step.` } }] } })
     }
     if (method === 'tools/call') {
       const fn = HANDLERS[params.name]
