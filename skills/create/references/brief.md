@@ -1,6 +1,6 @@
 # The brief
 
-Write it to `shipcast-output/<slug>/brief.md`. **Everything in it must be traceable to the source.**
+Write it to `shipcast-output/<slug>/working-files/brief.md`. **Everything in it must be traceable to the source.**
 Put the evidence (file path, doc, or "user said") next to every feature and fact.
 
 ```markdown

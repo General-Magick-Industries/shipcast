@@ -56,8 +56,9 @@ It works with:
   proposes one and checks with you.
 - **A description in chat** — for ideas that don't exist yet.
 
-Results land in `shipcast-output/<date>-<product>-<format>/`: a PNG or MP4 per post, a contact sheet,
-`captions.md` (captions, hashtags, alt text), and the `brief.md` it worked from.
+Results land in `shipcast-output/<date>-<product>-<format>/`, which opens when it's done. At the top: the
+finished posts (a PNG or MP4 each) and `captions.md` (captions, hashtags, alt text). Everything else —
+brief, plan, HTML, pictures, frames, contact sheet — is tucked into `working-files/`.
 
 ## Formats
 

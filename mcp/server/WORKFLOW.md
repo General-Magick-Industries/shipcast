@@ -52,12 +52,12 @@ Call `formats` and map the user's words to a format id ("reel" → `instagram-re
 1. The user named a folder, a file or a product → use it. A product name without a path → call
    `find_products` and match the name.
 2. The user described a product that has no folder → work from the description.
-3. Otherwise → call `find_products`. It lists product folders on this computer, most recently worked on
-   first, with name, stack, one-liner and last activity. It reads only folder names, manifests and README
-   first lines — nothing leaves the machine.
-   - **One match** → use it and say so.
-   - **Several** → offer the **5 most recent as a numbered list** — `name — short path · stack · last
-     active` — and say they can reply with a number, a path, or a description of an idea with no folder.
+3. **Otherwise, always let the user pick.** Call `find_products`. It lists product folders on this
+   computer, most recently worked on first, with name, stack, one-liner and last activity. It reads only
+   folder names, manifests and README first lines — nothing leaves the machine.
+   - Offer up to **5 as a numbered list** — `name — short path · stack · last active` — and say they can
+     reply with a number, a path, or a description of an idea with no folder. Ask even when only one
+     was found.
    - **None** → ask for a path, a notes file, or a description of the product.
 
 **Ask once:** put every missing need into **one** short message, each with numbered choices and your
@@ -79,14 +79,23 @@ Call `guide` with `reading` and follow it. In short:
 
 ### 4. Write the brief
 
-Call `start_project` with the product name and format — it creates the output folder and returns its
-path. Call `guide` with `brief`, then write `brief.md` there with `write_file`. Show the user a 5-line
+Call `start_project` with the product name and format. It creates the output folder, laid out so the
+finished posts are the first thing the user sees:
+
+```
+<project>/
+  post-1.png  post-2.png  post-3.png    ← finished posts only (render and video put them here)
+  captions.md
+  working-files/                        ← brief.md, plan.md, the HTML, assets/, frames, contact sheet
+```
+
+Call `guide` with `brief`, then write `working-files/brief.md` with `write_file`. Show the user a 5-line
 summary — name, one-liner, stage, top features, brand colours — and continue unless they correct you.
 **If the product name or stage is genuinely ambiguous, ask before designing.**
 
 ### 5. Plan the posts
 
-Call `guide` with `platforms`. For each post decide, and write into `plan.md`:
+Call `guide` with `platforms`. For each post decide, and write into `working-files/plan.md`:
 
 - **Angle** — each post a different one: a feature in action · the problem and the fix · how it works
   in 3 steps · who it's for · a real moment of delight · behind the build · launch/coming soon.
@@ -98,8 +107,8 @@ Call `guide` with `platforms`. For each post decide, and write into `plan.md`:
 ### 6. Design
 
 Call `guide` with `design` (and `motion` for video). Write one HTML file per post — per slide for
-carousels — into the project folder with `write_file`: `post-1.html`, `post-2.html`… or
-`post-1-slide-1.html`… Copy the pictures you use into the project's `assets/` folder with `copy_asset`
+carousels — into `working-files/` with `write_file`: `post-1.html`, `post-2.html`… or
+`post-1-slide-1.html`… Copy the pictures you use into `working-files/assets/` with `copy_asset`
 and reference them relatively (`assets/name.png`).
 
 **Build every post from the brief's real material**: recreate real screens from their code with exact
@@ -115,19 +124,29 @@ Call `guide` with `review` and run its loop for each post:
    against the review checklist like a strict art director. Fix what's wrong and render again. Up to 3
    rounds per post; stop when it passes.
 3. For video: `frames` to review key moments, then `video` to export the MP4.
-4. When all posts are done, `sheet` them and look at the set together for consistency and variety.
+4. When all posts are done, `sheet` them into `working-files/contact-sheet.png` and look at the set
+   together for consistency and variety.
 
 ### 8. Deliver
 
-Write `captions.md` (per post: file names, caption, hashtags, alt text) and finish with a short message:
+Write `captions.md` at the top of the project folder (per post: file names, caption, hashtags, alt
+text). Call `open_folder` on the project folder, then finish with a short message that **starts with the
+files**:
 
-- where the files are (PNG/MP4 per post, contact sheet, captions, brief) — offer `open_folder`
-- one line per post: its angle and hook
-- anything you assumed (brand, stage, name) and anything the user should check before posting
+```
+Your 3 posts are in <project folder> (opened for you):
+  post-1.png — <angle>: "<hook>"
+  post-2.png — …
+  post-3.png — …
+  captions.md — caption, hashtags and alt text to paste with each one
+```
+
+Then, briefly: anything you assumed (brand, stage, name) and anything the user should check before
+posting. Mention once that `working-files/` holds what's needed for edits and can be ignored.
 
 Offer to adjust: another angle, another format from the same brief, translations, or the real-app mode.
 
 ## When the user asks for changes
 
-Reuse `brief.md` and `plan.md` (read them back with `read_file`) — don't re-read the whole product. Edit
+Reuse `working-files/brief.md` and `plan.md` (read them back with `read_file`) — don't re-read the whole product. Edit
 the HTML with `write_file`, then run the step 7 loop again for the changed posts only.

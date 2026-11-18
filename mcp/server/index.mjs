@@ -79,6 +79,9 @@ const fail = (t) => ({ isError: true, content: [{ type: 'text', text: t }] })
 const image = (file, note) => ({ content: [{ type: 'text', text: note }, { type: 'image', data: readFileSync(file).toString('base64'), mimeType: 'image/jpeg' }] })
 const runText = (r) => (r.ok ? text(r.out || r.err) : fail(r.err || r.out || 'the toolkit failed'))
 const previewPath = (png) => join(dirname(png), '.previews', `${basename(png, extname(png))}.jpg`)
+// Finished posts go at the top of the project; the HTML and everything else stays in working-files/.
+const WORK = 'working-files'
+const finalDir = (src) => (basename(dirname(src)) === WORK ? dirname(dirname(src)) : dirname(src))
 
 // ── tools ───────────────────────────────────────────────────────────────────
 const fmt = { type: 'string', description: 'Format id from the formats tool, e.g. instagram-feed, instagram-carousel, instagram-reel, tiktok-video, tiktok-photo, linkedin-image, linkedin-square, linkedin-video' }
@@ -92,11 +95,11 @@ const TOOLS = [
   { name: 'read_file', title: 'Read a file', description: 'Read a text file from the product (code, docs, design tokens, copy). Secret and credential files are refused.', inputSchema: { type: 'object', properties: { path: { type: 'string' }, start_line: { type: 'number' }, max_lines: { type: 'number', description: 'Default 800' } }, required: ['path'] }, annotations: { readOnlyHint: true } },
   { name: 'search', title: 'Search files', description: 'Search text files under a folder for a regular expression; returns file:line matches.', inputSchema: { type: 'object', properties: { path: { type: 'string' }, pattern: { type: 'string' }, file_pattern: { type: 'string', description: 'Optional regex on file paths, e.g. \\.(ts|tsx)$' } }, required: ['path', 'pattern'] }, annotations: { readOnlyHint: true } },
   { name: 'view_image', title: 'Look at a picture', description: "Look at one of the product's pictures (screenshot, illustration, logo, icon).", inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] }, annotations: { readOnlyHint: true } },
-  { name: 'start_project', title: 'Start a project folder', description: 'Create the output folder for this set of posts and return its path. Everything you write goes there.', inputSchema: { type: 'object', properties: { product: { type: 'string' }, format: fmt }, required: ['product', 'format'] } },
+  { name: 'start_project', title: 'Start a project folder', description: 'Create the output folder for this set of posts. Write the brief, plan, HTML and assets into its working-files folder; finished posts land at the top of the project folder on their own.', inputSchema: { type: 'object', properties: { product: { type: 'string' }, format: fmt }, required: ['product', 'format'] } },
   { name: 'write_file', title: 'Write a file', description: 'Write a file (brief.md, plan.md, post HTML, captions.md) inside the Shipcast output folder.', inputSchema: { type: 'object', properties: { path: { type: 'string', description: 'Absolute path inside the project folder' }, content: { type: 'string' } }, required: ['path', 'content'] }, annotations: { destructiveHint: false } },
   { name: 'copy_asset', title: 'Copy a picture into the project', description: "Copy one of the product's pictures or videos into the project's assets folder so the HTML can use it.", inputSchema: { type: 'object', properties: { from: { type: 'string' }, project: { type: 'string', description: 'The project folder from start_project' }, name: { type: 'string', description: 'Optional new file name' } }, required: ['from', 'project'] } },
   { name: 'check', title: 'Check a post', description: 'Find layout problems a viewer would see: text cut off, off-frame, overlapping, or under the platform\'s buttons.', inputSchema: { type: 'object', properties: { html: { type: 'string' }, format: fmt }, required: ['html', 'format'] }, annotations: { readOnlyHint: true } },
-  { name: 'render', title: 'Render a post', description: 'Render a post HTML to a full-size PNG next to it and show you a preview to review.', inputSchema: { type: 'object', properties: { html: { type: 'string' }, format: fmt, at: { type: 'number', description: 'For video formats: the second to capture' } }, required: ['html', 'format'] } },
+  { name: 'render', title: 'Render a post', description: 'Render a post HTML (in working-files) to a full-size PNG at the top of the project folder and show you a preview to review.', inputSchema: { type: 'object', properties: { html: { type: 'string' }, format: fmt, at: { type: 'number', description: 'For video formats: the second to capture' } }, required: ['html', 'format'] } },
   { name: 'frames', title: 'Review video moments', description: 'Capture key moments of a video post and show them as one contact sheet.', inputSchema: { type: 'object', properties: { html: { type: 'string' }, format: fmt, at: { type: 'array', items: { type: 'number' }, description: 'Seconds to capture; default spreads across the video' } }, required: ['html', 'format'] } },
   { name: 'video', title: 'Export a video', description: 'Export a video post to MP4 (frame-accurate; needs ffmpeg). Takes about a minute for 15 seconds.', inputSchema: { type: 'object', properties: { html: { type: 'string' }, format: fmt, duration: { type: 'number' }, fps: { type: 'number' } }, required: ['html', 'format'] } },
   { name: 'sheet', title: 'Contact sheet', description: 'Put several rendered PNGs on one contact sheet and show it, to review a set together.', inputSchema: { type: 'object', properties: { images: { type: 'array', items: { type: 'string' } }, out: { type: 'string', description: 'Where to save the sheet PNG (inside the project)' } }, required: ['images', 'out'] } },
@@ -179,8 +182,8 @@ const HANDLERS = {
   async start_project({ product, format: f }) {
     const day = new Date().toISOString().slice(0, 10)
     const dir = join(OUT_ROOT, `${day}-${slug(product)}-${slug(f)}`)
-    mkdirSync(join(dir, 'assets'), { recursive: true })
-    return text({ project: dir, assets: join(dir, 'assets') })
+    mkdirSync(join(dir, WORK, 'assets'), { recursive: true })
+    return text({ project: dir, working_files: join(dir, WORK), assets: join(dir, WORK, 'assets') })
   },
   async write_file({ path, content }) {
     const f = writable(path)
@@ -190,7 +193,7 @@ const HANDLERS = {
   },
   async copy_asset({ from, project, name }) {
     const src = readable(from)
-    const dir = writable(join(project, 'assets'))
+    const dir = writable(join(project, WORK, 'assets'))
     mkdirSync(dir, { recursive: true })
     const dest = join(dir, name ? basename(name) : basename(src))
     copyFileSync(src, dest)
@@ -199,16 +202,18 @@ const HANDLERS = {
   async check({ html, format: f }) { return runText(await toolkit(['check', inOut(html), '--format', f])) },
   async render({ html, format: f, at }) {
     const src = writable(html)
-    const png = join(dirname(src), `${basename(src, extname(src))}.png`)
-    const args = ['render', src, '--format', f, '--out', png, '--preview', previewPath(png)]
+    // A still from a video is only for review, so it stays with the working files.
+    const png = join(at === undefined ? finalDir(src) : dirname(src), `${basename(src, extname(src))}${at === undefined ? '' : `-at-${at}s`}.png`)
+    const preview = join(dirname(src), '.previews', `${basename(png, '.png')}.jpg`)
+    const args = ['render', src, '--format', f, '--out', png, '--preview', preview]
     if (at !== undefined) args.push('--at', String(at))
     const r = await toolkit(args)
     if (!r.ok) return fail(r.err || r.out)
-    return image(previewPath(png), `Rendered ${png} — look at this preview and judge it against the review checklist.`)
+    return image(preview, `Rendered ${png} — look at this preview and judge it against the review checklist.`)
   },
   async frames({ html, format: f, at }) {
     const src = writable(html)
-    const dir = join(dirname(src), '.frames', basename(src, extname(src)))
+    const dir = join(dirname(src), 'frames', basename(src, extname(src)))
     const args = ['frames', src, '--format', f, '--out-dir', dir]
     if (at?.length) args.push('--at', at.join(','))
     const r = await toolkit(args)
@@ -221,7 +226,7 @@ const HANDLERS = {
   },
   async video({ html, format: f, duration, fps }) {
     const src = writable(html)
-    const mp4 = join(dirname(src), `${basename(src, extname(src))}.mp4`)
+    const mp4 = join(finalDir(src), `${basename(src, extname(src))}.mp4`)
     const args = ['video', src, '--format', f, '--out', mp4]
     if (duration) args.push('--duration', String(duration))
     if (fps) args.push('--fps', String(fps))

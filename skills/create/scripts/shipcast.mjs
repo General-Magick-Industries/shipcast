@@ -10,6 +10,7 @@
 //   frames <html> --format <id> --out-dir <dir> [--at 1,5,9.5]
 //   video  <html> --format <id> --out <mp4> [--duration s] [--fps 30] [--audio file]
 //   sheet  <png...> --out <png> [--cols 3] [--preview <jpg>]   one contact sheet to review several renders at once
+//   open   <dir>                             open a folder in Finder / Explorer / the file manager
 
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, openSync, readSync, closeSync } from 'node:fs'
@@ -632,7 +633,15 @@ figure{margin:0}img{width:${cell}px;display:block;border-radius:6px}figcaption{m
     console.log(resolve(opt.out))
     return
   }
-  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 13).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'))
+  if (cmd === 'open') {
+    const dir = resolve(pos[0] || '.')
+    if (!existsSync(dir)) die(`no such folder: ${dir}`)
+    const app = platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'explorer' : 'xdg-open'
+    spawn(app, [dir], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref()
+    console.log(dir)
+    return
+  }
+  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 14).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'))
   if (cmd) process.exitCode = 1
 }
 
