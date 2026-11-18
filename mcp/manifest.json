@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "shipcast",
   "display_name": "Shipcast",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Turn your product's code, docs or notes into on-brand Instagram, TikTok and LinkedIn posts — rendered and checked before you see them.",
   "long_description": "Shipcast reads a software product — its code, docs or notes — and makes social posts a team would actually publish: images, carousels and videos for Instagram, TikTok and LinkedIn. It finds the products on your computer, works out the brand from the source, designs every post from the real product, renders it locally in Chrome, checks the layout, looks at it, and fixes it before you see it. Everything runs on your computer; your files never leave it.",
   "author": {

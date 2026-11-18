@@ -29,8 +29,8 @@ You also need **Node 22+**, **Google Chrome** (or Chromium/Edge), and **ffmpeg**
 Not using Claude Code? Install the **Shipcast extension for Claude Desktop**: download
 `shipcast.mcpb` and double-click it (or Settings → Extensions → Install extension). It has the same
 features — it finds your products, reads them, and renders and checks every post on your computer — and
-adds a **Make social posts** prompt to Claude Desktop. You need Google Chrome, Node.js 22+, and ffmpeg for
-video. Posts are saved in `Documents/Shipcast` (changeable in the extension's settings).
+adds a **Make social posts** prompt to Claude Desktop. You need Google Chrome, and ffmpeg for video —
+nothing else (it runs on Claude Desktop's built-in Node.js). Posts are saved in `Documents/Shipcast` (changeable in the extension's settings).
 
 Build it yourself with `node mcp/build.mjs` → `mcp/dist/shipcast.mcpb`.
 

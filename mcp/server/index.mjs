@@ -8,6 +8,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSyn
 import { homedir, platform } from 'node:os'
 import { basename, delimiter, dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { Worker } from 'node:worker_threads'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const TOOLKIT = join(HERE, 'toolkit', 'scripts', 'shipcast.mjs')
@@ -27,8 +28,10 @@ delete ENV.SHIPCAST_CHROME; delete ENV.SHIPCAST_FFMPEG
 if (setting('SHIPCAST_CHROME_PATH')) ENV.SHIPCAST_CHROME = setting('SHIPCAST_CHROME_PATH')
 if (setting('SHIPCAST_FFMPEG_PATH')) ENV.SHIPCAST_FFMPEG = setting('SHIPCAST_FFMPEG_PATH')
 
-// The toolkit needs Node 22+ (built-in WebSocket). Use this runtime if it qualifies, else a system node.
-// Inside Claude Desktop's built-in runtime, process.execPath is the Claude app itself, which may not be launched.
+// The toolkit needs Node 22+ (built-in WebSocket). It runs on a thread of this runtime when that qualifies, so
+// Claude Desktop users need no separate Node install. Otherwise it runs in a system node. Inside Claude Desktop's
+// built-in runtime, process.execPath is the Claude app itself, which may not be launched.
+const ON_THREAD = typeof WebSocket === 'function'
 function nodeBinary() {
   if (!process.versions.electron && Number(process.versions.node.split('.')[0]) >= 22) return process.execPath
   const r = spawnSync(platform() === 'win32' ? 'where' : 'which', ['node'], { env: ENV, encoding: 'utf8' })
@@ -38,9 +41,14 @@ function nodeBinary() {
   }
   return null
 }
-const NODE = nodeBinary()
+let NODE = ON_THREAD ? undefined : nodeBinary()
 
-function toolkit(args, timeoutMs = 10 * 60_000) {
+async function toolkit(args, timeoutMs = 10 * 60_000) {
+  if (ON_THREAD) {
+    const r = await onThread(args, timeoutMs)
+    if (!r.noThread) return r
+    if (NODE === undefined) NODE = nodeBinary()
+  }
   if (!NODE) return Promise.resolve({ ok: false, out: '', err: 'Shipcast needs Node.js 22 or newer installed on this computer (Claude Desktop’s built-in runtime can’t run the renderer). Install it from https://nodejs.org, then restart Claude.' })
   return new Promise((done) => {
     const p = spawn(NODE, [TOOLKIT, ...args], { env: ENV })
@@ -50,6 +58,19 @@ function toolkit(args, timeoutMs = 10 * 60_000) {
     p.stdout.on('data', (d) => (out += d))
     p.stderr.on('data', (d) => (err += d))
     p.on('close', (code) => { clearTimeout(t); done({ ok: code === 0 || code === 2, code, out: out.trim(), err: err.trim() }) })
+  })
+}
+function onThread(args, timeoutMs) {
+  return new Promise((done) => {
+    let w
+    try { w = new Worker(TOOLKIT, { argv: args, env: ENV, stdout: true, stderr: true }) } catch { return done({ noThread: true }) }
+    let out = '', err = '', code, open = 3
+    const finish = () => { if (--open === 0) { clearTimeout(t); done({ ok: code === 0 || code === 2, code, out: out.trim(), err: err.trim() }) } }
+    const t = setTimeout(() => { err += '\ntimed out'; w.terminate() }, timeoutMs)
+    w.stdout.on('data', (d) => (out += d)).on('end', finish)
+    w.stderr.on('data', (d) => (err += d)).on('end', finish)
+    w.on('error', (e) => (err += `\n${e?.message || e}`))
+    w.on('exit', (c) => { code = c; finish() })
   })
 }
 
